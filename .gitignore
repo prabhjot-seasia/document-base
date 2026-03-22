@@ -12,6 +12,7 @@ frontend/.env
 
 # Claude files
 .claude/
+CLAUDE.md
 
 # OS temp files
 .DS_Store
