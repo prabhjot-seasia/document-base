@@ -1,0 +1,183 @@
+.directory-manager h2 {
+  margin-bottom: 1.5rem;
+  color: #2d3748;
+}
+
+.create-dir-form {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.create-dir-form input,
+.create-dir-form select {
+  flex: 1;
+  min-width: 180px;
+  padding: 0.75rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+}
+
+.create-dir-form input:focus,
+.create-dir-form select:focus {
+  border-color: #667eea;
+}
+
+.create-dir-form .submit-btn {
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.dir-tree {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.dir-node {
+  margin-bottom: 2px;
+}
+
+.dir-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.25rem;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.dir-row:hover {
+  background: #f7fafc;
+}
+
+.expand-btn {
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 10px;
+  color: #718096;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.expand-placeholder {
+  width: 24px;
+  height: 24px;
+  display: inline-block;
+}
+
+.dir-name {
+  font-weight: 500;
+  color: #2d3748;
+  font-size: 14px;
+}
+
+.dir-path {
+  font-size: 12px;
+  color: #a0aec0;
+  flex: 1;
+}
+
+.dir-actions {
+  display: flex;
+  gap: 0.25rem;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.dir-row:hover .dir-actions {
+  opacity: 1;
+}
+
+.action-btn {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+.action-btn.edit {
+  color: #667eea;
+  border-color: #667eea;
+}
+
+.action-btn.delete {
+  color: #e53e3e;
+  border-color: #e53e3e;
+}
+
+.action-btn.create-child {
+  color: #38a169;
+  border-color: #38a169;
+}
+
+.action-btn.save {
+  color: #38a169;
+  border-color: #38a169;
+}
+
+.action-btn.cancel {
+  color: #718096;
+}
+
+.action-btn:hover {
+  opacity: 0.8;
+}
+
+.edit-inline {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex: 1;
+}
+
+.edit-inline input {
+  flex: 1;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid #667eea;
+  border-radius: 4px;
+  font-size: 14px;
+  outline: none;
+}
+
+.empty-text {
+  text-align: center;
+  color: #718096;
+  padding: 2rem;
+}
+
+@media (max-width: 576px) {
+  .create-dir-form {
+    flex-direction: column;
+  }
+
+  .create-dir-form input,
+  .create-dir-form select {
+    min-width: unset;
+  }
+
+  .dir-actions {
+    opacity: 1;
+    flex-wrap: wrap;
+  }
+
+  .dir-path {
+    display: none;
+  }
+}

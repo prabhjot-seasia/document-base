@@ -1,0 +1,185 @@
+.document-versions h2 {
+  margin: 0;
+  color: #2d3748;
+}
+
+.document-versions h3 {
+  margin: 1.5rem 0 1rem;
+  color: #2d3748;
+}
+
+.back-btn {
+  background: none;
+  border: none;
+  color: #667eea;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0;
+  margin-bottom: 1rem;
+}
+
+.back-btn:hover {
+  text-decoration: underline;
+}
+
+.doc-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.doc-detail-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.view-doc-btn {
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: opacity 0.2s;
+}
+
+.view-doc-btn:hover {
+  opacity: 0.85;
+}
+
+.delete-doc-btn {
+  padding: 0.5rem 1rem;
+  background: #e53e3e;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.delete-doc-btn:hover {
+  background: #c53030;
+}
+
+.doc-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  font-size: 14px;
+  color: #4a5568;
+  margin-bottom: 1rem;
+}
+
+.doc-info strong {
+  color: #718096;
+}
+
+.doc-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.tag-chip {
+  background: #edf2f7;
+  color: #4a5568;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.versions-table-container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.versions-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 700px;
+}
+
+.versions-table th {
+  background: #f8f9fa;
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 2px solid #e2e8f0;
+  font-size: 13px;
+  color: #4a5568;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.versions-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 13px;
+}
+
+.archived-row {
+  opacity: 0.7;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.status-badge.current {
+  background: #c6f6d5;
+  color: #22543d;
+}
+
+.status-badge.archived {
+  background: #fed7d7;
+  color: #9b2c2c;
+}
+
+.version-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.view-btn-sm,
+.download-btn-sm {
+  padding: 0.3rem 0.6rem;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: opacity 0.2s;
+}
+
+.view-btn-sm {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.download-btn-sm {
+  background: #667eea;
+}
+
+.view-btn-sm:hover,
+.download-btn-sm:hover {
+  opacity: 0.85;
+}
+
+@media (max-width: 576px) {
+  .doc-detail-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .doc-info {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}

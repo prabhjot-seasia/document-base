@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Build output
+backend/dist/
+frontend/build/
+
+# Environment files
+.env
+backend/.env
+frontend/.env
+
+# Claude files
+.claude/
+
+# OS temp files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE
+.idea/
+.vscode/
+*.code-workspace
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test reports
+tests/bdd/reports/
+
+# Docker volumes
+postgres_data/

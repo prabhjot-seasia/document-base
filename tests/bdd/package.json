@@ -1,0 +1,24 @@
+{
+  "name": "document-base-bdd",
+  "version": "1.0.0",
+  "description": "BDD tests for Document Base",
+  "main": "index.js",
+  "scripts": {
+    "test": "./node_modules/.bin/cucumber-js",
+    "test:sso": "./node_modules/.bin/cucumber-js --profile sso",
+    "test:login": "./node_modules/.bin/cucumber-js features/sso-login.feature",
+    "test:documents": "./node_modules/.bin/cucumber-js --profile documents",
+    "test:archive-view": "./node_modules/.bin/cucumber-js --profile archive-view"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@cucumber/cucumber": "^12.2.0",
+    "@playwright/test": "^1.55.0",
+    "axios": "^1.12.2",
+    "chai": "^6.0.1",
+    "playwright": "^1.55.0"
+  }
+}
