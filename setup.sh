@@ -6,8 +6,8 @@
 set -e
 
 # Default values
-DEFAULT_DB_HOST="localhost"
-DEFAULT_DB_PORT="5434"
+DEFAULT_DB_HOST="host.docker.internal"
+DEFAULT_DB_PORT="5432"
 DEFAULT_DB_USER="postgres"
 DEFAULT_DB_PASSWORD="postgres"
 DEFAULT_DB_NAME="document_base"
@@ -90,8 +90,8 @@ USAGE:
 
 OPTIONS:
     Database Configuration:
-    --db-host HOST              Database host (default: localhost)
-    --db-port PORT              Database port (default: 5434)
+    --db-host HOST              Database host (default: host.docker.internal)
+    --db-port PORT              Database port (default: 5432)
     --db-user USER              Database username (default: postgres)
     --db-password PASSWORD      Database password (default: postgres)
     --db-name NAME              Database name (default: document_base)
@@ -190,14 +190,9 @@ validate_config() {
 generate_env() {
     print_info "Generating backend/.env configuration..."
 
-    local db_host="$DB_HOST"
-    if [[ "$USE_EXTERNAL_DB" == "false" ]]; then
-        db_host="localhost"
-    fi
-
     cat > backend/.env << EOF
 # Database Configuration
-DB_HOST=${db_host}
+DB_HOST=${DB_HOST}
 DB_PORT=${DB_PORT}
 DB_USER=${DB_USER}
 DB_PASSWORD=${DB_PASSWORD}
@@ -223,8 +218,18 @@ EOF
     print_success "Generated backend/.env"
 }
 
+# Export variables that docker-compose.yml references via ${VAR:-default}
+export_docker_vars() {
+    export DB_HOST DB_PORT DB_USER DB_PASSWORD DB_NAME DB_SSL_MODE
+    export SERVER_PORT SERVER_HOST
+    export FRONTEND_PORT
+    export AUTH_SERVICE_URL CLIENT_ID CLIENT_SECRET
+    export MAX_UPLOAD_SIZE
+}
+
 # Docker compose with profile
 dc() {
+    export_docker_vars
     if [[ "$USE_EXTERNAL_DB" == "true" ]]; then
         docker compose "$@"
     else
@@ -239,16 +244,22 @@ do_init_db() {
         print_error "psql not found. Install PostgreSQL client to use --init-db"
     fi
 
+    # Resolve host.docker.internal to localhost for host-side psql
+    local psql_host="$DB_HOST"
+    if [[ "$psql_host" == "host.docker.internal" ]]; then
+        psql_host="localhost"
+    fi
+
     # Test connection
-    print_info "Testing database connection to ${DB_HOST}:${DB_PORT}..."
-    if ! PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d postgres -c "SELECT 1;" >/dev/null 2>&1; then
-        print_error "Cannot connect to database at ${DB_HOST}:${DB_PORT} with user ${DB_USER}"
+    print_info "Testing database connection to ${psql_host}:${DB_PORT}..."
+    if ! PGPASSWORD="$DB_PASSWORD" psql -h "$psql_host" -p "$DB_PORT" -U "$DB_USER" -d postgres -c "SELECT 1;" >/dev/null 2>&1; then
+        print_error "Cannot connect to database at ${psql_host}:${DB_PORT} with user ${DB_USER}"
     fi
     print_success "Database connection verified"
 
     # Create database if it doesn't exist
     print_info "Creating database ${DB_NAME} if it doesn't exist..."
-    PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d postgres -c "CREATE DATABASE ${DB_NAME};" 2>/dev/null || true
+    PGPASSWORD="$DB_PASSWORD" psql -h "$psql_host" -p "$DB_PORT" -U "$DB_USER" -d postgres -c "CREATE DATABASE ${DB_NAME};" 2>/dev/null || true
     print_success "Database ${DB_NAME} ready (migrations will run on backend startup)"
 }
 
@@ -393,8 +404,10 @@ validate_config
 if [[ "$USE_EXTERNAL_DB" == "true" && "$DO_INIT_DB" == "false" && \
       ("$DO_START" == "true" || "$DO_BUILD" == "true" || "$DO_RESTART" == "true") ]]; then
     if command -v psql >/dev/null 2>&1; then
-        if ! PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1;" >/dev/null 2>&1; then
-            print_warning "Database ${DB_NAME} not found on ${DB_HOST}:${DB_PORT}, running init-db automatically..."
+        local_host="$DB_HOST"
+        [[ "$local_host" == "host.docker.internal" ]] && local_host="localhost"
+        if ! PGPASSWORD="$DB_PASSWORD" psql -h "$local_host" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1;" >/dev/null 2>&1; then
+            print_warning "Database ${DB_NAME} not found on ${local_host}:${DB_PORT}, running init-db automatically..."
             do_init_db
         fi
     fi
