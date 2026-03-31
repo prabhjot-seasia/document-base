@@ -1,11 +1,7 @@
 #!/bin/bash
 
-# Document Base Setup Script
-# This script sets up the document management service with configurable parameters
-
 set -e
 
-# Default values
 DEFAULT_DB_HOST="host.docker.internal"
 DEFAULT_DB_PORT="5432"
 DEFAULT_DB_USER="postgres"
@@ -16,12 +12,12 @@ DEFAULT_SERVER_PORT="8082"
 DEFAULT_SERVER_HOST="0.0.0.0"
 DEFAULT_FRONTEND_PORT="3001"
 DEFAULT_AUTH_SERVICE_URL="http://localhost:8080"
+DEFAULT_AUTH_SERVICE_FRONTEND_URL="http://localhost:3000"
 DEFAULT_CLIENT_ID="document-base-clientid"
 DEFAULT_CLIENT_SECRET="document-base-clientsecret"
 DEFAULT_MAX_UPLOAD_SIZE="52428800"
 DEFAULT_USE_EXTERNAL_DB="false"
 
-# Current values (start with defaults)
 DB_HOST="$DEFAULT_DB_HOST"
 DB_PORT="$DEFAULT_DB_PORT"
 DB_USER="$DEFAULT_DB_USER"
@@ -32,12 +28,12 @@ SERVER_PORT="$DEFAULT_SERVER_PORT"
 SERVER_HOST="$DEFAULT_SERVER_HOST"
 FRONTEND_PORT="$DEFAULT_FRONTEND_PORT"
 AUTH_SERVICE_URL="$DEFAULT_AUTH_SERVICE_URL"
+AUTH_SERVICE_FRONTEND_URL="$DEFAULT_AUTH_SERVICE_FRONTEND_URL"
 CLIENT_ID="$DEFAULT_CLIENT_ID"
 CLIENT_SECRET="$DEFAULT_CLIENT_SECRET"
 MAX_UPLOAD_SIZE="$DEFAULT_MAX_UPLOAD_SIZE"
 USE_EXTERNAL_DB="$DEFAULT_USE_EXTERNAL_DB"
 
-# Actions
 DO_BUILD=false
 DO_START=false
 DO_STOP=false
@@ -49,7 +45,6 @@ DO_INIT_DB=false
 DO_SEED=false
 DO_PURGE=false
 
-# Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -99,9 +94,15 @@ OPTIONS:
     --use-external-db           Use external database instead of Docker
 
     Server Configuration:
-    --server-port PORT          Backend server port (default: 8082)
-    --frontend-port PORT        Frontend port (default: 3001)
-    --auth-service-url URL      Auth service URL (default: http://localhost:8080)
+    --server-port PORT          Document Base backend port (default: 8082)
+    --frontend-port PORT        Document Base frontend port (default: 3001)
+    --auth-service-url URL      Auth service backend API (default: http://localhost:8080)
+                                Used for token exchange, token validation, and SSO redirects
+    --auth-service-frontend-url URL
+                                Auth service frontend (default: http://localhost:3000)
+                                The SSO login page the user sees in the browser
+    --client-id ID              SSO client ID (default: document-base-clientid)
+    --client-secret SECRET      SSO client secret (default: document-base-clientsecret)
 
     Actions:
     --build                     Build Docker images
@@ -117,23 +118,33 @@ OPTIONS:
 
     --help                      Show this help message
 
+DEFAULT PORTS:
+    Auth Service Frontend:      3000    (external dependency — not managed by this script)
+    Auth Service Backend:       8080    (external dependency — not managed by this script)
+    Document Base Frontend:     3001    (--frontend-port)
+    Document Base Backend:      8082    (--server-port)
+    PostgreSQL:                 5432    (--db-port)
+
 EXAMPLES:
     ./setup.sh --start
-    ./setup.sh --build --start
-    ./setup.sh --status
     ./setup.sh --start --seed
     ./setup.sh --purge-data --seed
-    ./setup.sh --use-external-db --db-host localhost --init-db --start
-    ./setup.sh --auth-service-url http://auth:8080 --start
+    ./setup.sh --use-external-db --db-host localhost --db-port 5432 --start
+    ./setup.sh --auth-service-url http://auth-api.example.com:8080 \\
+               --auth-service-frontend-url http://auth.example.com:3000 --start
+    ./setup.sh --auth-service-url http://auth-api.example.com:8080 \\
+               --auth-service-frontend-url http://auth.example.com:3000 \\
+               --use-external-db --db-host db.example.com \\
+               --client-id my-client-id --client-secret my-secret \\
+               --start --seed
 
-DEFAULT TEST CREDENTIALS:
-    doc_admin / Admin@123    (documents:read + documents:write)
-    doc_reader / Admin@123   (documents:read only)
-    admin / Admin@123        (all permissions)
+DEFAULT TEST CREDENTIALS (from auth-service):
+    doc_admin  / Admin@123    (documents:read + documents:write)
+    doc_reader / Admin@123    (documents:read only)
+    admin      / Admin@123    (all permissions)
 EOF
 }
 
-# Parse arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
         --db-host) DB_HOST="$2"; shift 2 ;;
@@ -146,6 +157,7 @@ while [[ $# -gt 0 ]]; do
         --server-port) SERVER_PORT="$2"; shift 2 ;;
         --frontend-port) FRONTEND_PORT="$2"; shift 2 ;;
         --auth-service-url) AUTH_SERVICE_URL="$2"; shift 2 ;;
+        --auth-service-frontend-url) AUTH_SERVICE_FRONTEND_URL="$2"; shift 2 ;;
         --client-id) CLIENT_ID="$2"; shift 2 ;;
         --client-secret) CLIENT_SECRET="$2"; shift 2 ;;
         --build) DO_BUILD=true; shift ;;
@@ -163,7 +175,6 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Validate configuration
 validate_config() {
     print_info "Validating configuration..."
 
@@ -186,48 +197,44 @@ validate_config() {
     print_success "Configuration validated"
 }
 
-# Generate backend .env
 generate_env() {
     print_info "Generating backend/.env configuration..."
 
     cat > backend/.env << EOF
-# Database Configuration
 DB_HOST=${DB_HOST}
 DB_PORT=${DB_PORT}
 DB_USER=${DB_USER}
 DB_PASSWORD=${DB_PASSWORD}
 DB_NAME=${DB_NAME}
 DB_SSL_MODE=${DB_SSL_MODE}
-
-# Server Configuration
 SERVER_PORT=${SERVER_PORT}
 SERVER_HOST=${SERVER_HOST}
-
-# Auth Service Configuration (SSO)
 AUTH_SERVICE_URL=${AUTH_SERVICE_URL}
 CLIENT_ID=${CLIENT_ID}
 CLIENT_SECRET=${CLIENT_SECRET}
-
-# Upload Configuration
 MAX_UPLOAD_SIZE=${MAX_UPLOAD_SIZE}
-
-# Migrations
 SKIP_MIGRATIONS=false
 EOF
 
     print_success "Generated backend/.env"
 }
 
-# Export variables that docker-compose.yml references via ${VAR:-default}
+to_docker_url() {
+    echo "${1//localhost/host.docker.internal}"
+}
+
 export_docker_vars() {
     export DB_HOST DB_PORT DB_USER DB_PASSWORD DB_NAME DB_SSL_MODE
     export SERVER_PORT SERVER_HOST
     export FRONTEND_PORT
-    export AUTH_SERVICE_URL CLIENT_ID CLIENT_SECRET
+    export CLIENT_ID CLIENT_SECRET
     export MAX_UPLOAD_SIZE
+    export AUTH_SERVICE_URL
+    export AUTH_SERVICE_FRONTEND_URL
+    export AUTH_SERVICE_URL_DOCKER
+    AUTH_SERVICE_URL_DOCKER="$(to_docker_url "$AUTH_SERVICE_URL")"
 }
 
-# Docker compose with profile
 dc() {
     export_docker_vars
     if [[ "$USE_EXTERNAL_DB" == "true" ]]; then
@@ -244,20 +251,17 @@ do_init_db() {
         print_error "psql not found. Install PostgreSQL client to use --init-db"
     fi
 
-    # Resolve host.docker.internal to localhost for host-side psql
     local psql_host="$DB_HOST"
     if [[ "$psql_host" == "host.docker.internal" ]]; then
         psql_host="localhost"
     fi
 
-    # Test connection
     print_info "Testing database connection to ${psql_host}:${DB_PORT}..."
     if ! PGPASSWORD="$DB_PASSWORD" psql -h "$psql_host" -p "$DB_PORT" -U "$DB_USER" -d postgres -c "SELECT 1;" >/dev/null 2>&1; then
         print_error "Cannot connect to database at ${psql_host}:${DB_PORT} with user ${DB_USER}"
     fi
     print_success "Database connection verified"
 
-    # Create database if it doesn't exist
     print_info "Creating database ${DB_NAME} if it doesn't exist..."
     PGPASSWORD="$DB_PASSWORD" psql -h "$psql_host" -p "$DB_PORT" -U "$DB_USER" -d postgres -c "CREATE DATABASE ${DB_NAME};" 2>/dev/null || true
     print_success "Database ${DB_NAME} ready (migrations will run on backend startup)"
@@ -266,7 +270,6 @@ do_init_db() {
 do_seed() {
     print_info "Seeding database with dummy documents and directories..."
 
-    # Wait for backend to be healthy (migrations must have run)
     print_info "Waiting for backend to be ready..."
     local retries=30
     while ! curl -sf "http://localhost:${SERVER_PORT}/health" > /dev/null 2>&1; do
@@ -350,21 +353,18 @@ do_status() {
     dc ps 2>/dev/null || true
     echo ""
 
-    # Check backend health
     if curl -sf "http://localhost:${SERVER_PORT}/health" > /dev/null 2>&1; then
         print_success "Backend is running at http://localhost:${SERVER_PORT}"
     else
         print_warning "Backend is not responding at http://localhost:${SERVER_PORT}"
     fi
 
-    # Check frontend
     if curl -sf "http://localhost:${FRONTEND_PORT}" > /dev/null 2>&1; then
         print_success "Frontend is running at http://localhost:${FRONTEND_PORT}"
     else
         print_warning "Frontend is not responding at http://localhost:${FRONTEND_PORT}"
     fi
 
-    # Check auth service
     if curl -sf "${AUTH_SERVICE_URL}/health" > /dev/null 2>&1; then
         print_success "Auth service is running at ${AUTH_SERVICE_URL}"
     else
@@ -384,7 +384,6 @@ do_clean() {
     print_success "Cleaned up all document-base resources"
 }
 
-# Execute actions
 if [[ "$DO_BUILD" == "false" && "$DO_START" == "false" && "$DO_STOP" == "false" && \
       "$DO_RESTART" == "false" && "$DO_INIT_DB" == "false" && "$DO_SEED" == "false" && \
       "$DO_PURGE" == "false" && "$DO_LOGS" == "false" && \
@@ -400,7 +399,6 @@ validate_config
 [[ "$DO_STOP" == "true" ]] && do_stop
 [[ "$DO_INIT_DB" == "true" ]] && do_init_db
 
-# Auto-init external DB if it doesn't exist
 if [[ "$USE_EXTERNAL_DB" == "true" && "$DO_INIT_DB" == "false" && \
       ("$DO_START" == "true" || "$DO_BUILD" == "true" || "$DO_RESTART" == "true") ]]; then
     if command -v psql >/dev/null 2>&1; then
