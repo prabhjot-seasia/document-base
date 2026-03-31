@@ -8,6 +8,7 @@ DEFAULT_DB_USER="postgres"
 DEFAULT_DB_PASSWORD="postgres"
 DEFAULT_DB_NAME="document_base"
 DEFAULT_DB_SSL_MODE="disable"
+DEFAULT_DB_PORT_EXTERNAL="5434"
 DEFAULT_SERVER_PORT="8082"
 DEFAULT_SERVER_HOST="0.0.0.0"
 DEFAULT_FRONTEND_PORT="3001"
@@ -24,6 +25,7 @@ DB_USER="$DEFAULT_DB_USER"
 DB_PASSWORD="$DEFAULT_DB_PASSWORD"
 DB_NAME="$DEFAULT_DB_NAME"
 DB_SSL_MODE="$DEFAULT_DB_SSL_MODE"
+DB_PORT_EXTERNAL="$DEFAULT_DB_PORT_EXTERNAL"
 SERVER_PORT="$DEFAULT_SERVER_PORT"
 SERVER_HOST="$DEFAULT_SERVER_HOST"
 FRONTEND_PORT="$DEFAULT_FRONTEND_PORT"
@@ -91,6 +93,7 @@ OPTIONS:
     --db-password PASSWORD      Database password (default: postgres)
     --db-name NAME              Database name (default: document_base)
     --db-ssl-mode MODE          Database SSL mode (default: disable)
+    --db-port-external PORT     PostgreSQL host-side port for Docker DB (default: 5434)
     --use-external-db           Use external database instead of Docker
 
     Server Configuration:
@@ -153,6 +156,7 @@ while [[ $# -gt 0 ]]; do
         --db-password) DB_PASSWORD="$2"; shift 2 ;;
         --db-name) DB_NAME="$2"; shift 2 ;;
         --db-ssl-mode) DB_SSL_MODE="$2"; shift 2 ;;
+        --db-port-external) DB_PORT_EXTERNAL="$2"; shift 2 ;;
         --use-external-db) USE_EXTERNAL_DB="true"; shift ;;
         --server-port) SERVER_PORT="$2"; shift 2 ;;
         --frontend-port) FRONTEND_PORT="$2"; shift 2 ;;
@@ -224,7 +228,7 @@ to_docker_url() {
 }
 
 export_docker_vars() {
-    export DB_HOST DB_PORT DB_USER DB_PASSWORD DB_NAME DB_SSL_MODE
+    export DB_HOST DB_PORT DB_USER DB_PASSWORD DB_NAME DB_SSL_MODE DB_PORT_EXTERNAL
     export SERVER_PORT SERVER_HOST
     export FRONTEND_PORT
     export CLIENT_ID CLIENT_SECRET
