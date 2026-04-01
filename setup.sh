@@ -29,6 +29,8 @@ DB_PORT_EXTERNAL="$DEFAULT_DOCKER_DB_PORT"
 SERVER_PORT="$DEFAULT_DOCBASE_BACKEND_PORT"
 SERVER_HOST="$DEFAULT_DOCBASE_BACKEND_HOST"
 FRONTEND_PORT="$DEFAULT_DOCBASE_FRONTEND_PORT"
+DOCBASE_BACKEND_URL=""
+DOCBASE_FRONTEND_URL=""
 AUTH_SERVICE_URL="$DEFAULT_AUTH_BACKEND_URL"
 AUTH_SERVICE_FRONTEND_URL="$DEFAULT_AUTH_FRONTEND_URL"
 CLIENT_ID="$DEFAULT_CLIENT_ID"
@@ -86,6 +88,12 @@ USAGE:
     ./setup.sh [OPTIONS]
 
 OPTIONS:
+    Document Base URLs:
+    --docbase-backend-url URL     DocBase backend URL (default: http://localhost:8082)
+                                  Use when backend is on a different IP or hostname
+    --docbase-frontend-url URL    DocBase frontend URL (default: http://localhost:3001)
+                                  Use when frontend is on a different IP or hostname
+
     Document Base Ports:
     --docbase-backend-port PORT   DocBase backend API port (default: 8082)
     --docbase-frontend-port PORT  DocBase frontend UI port (default: 3001)
@@ -144,9 +152,13 @@ EXAMPLES:
     ./setup.sh --docbase-backend-port 9090 --docbase-frontend-port 3005 \\
                --docker-db-port 5435 --start                            # All custom ports
 
-    # Auth service on non-default ports
-    ./setup.sh --auth-backend-url http://localhost:9090 \\
-               --auth-frontend-url http://localhost:3005 --start
+    # DocBase on a different IP
+    ./setup.sh --docbase-backend-url http://192.168.1.50:8082 \\
+               --docbase-frontend-url http://192.168.1.50:3001 --start
+
+    # Auth service on non-default ports/IP
+    ./setup.sh --auth-backend-url http://192.168.1.10:8080 \\
+               --auth-frontend-url http://192.168.1.10:3000 --start
 
     # External database
     ./setup.sh --use-external-db --db-host localhost --init-db --start
@@ -169,6 +181,8 @@ EOF
 
 while [[ $# -gt 0 ]]; do
     case $1 in
+        --docbase-backend-url) DOCBASE_BACKEND_URL="$2"; shift 2 ;;
+        --docbase-frontend-url) DOCBASE_FRONTEND_URL="$2"; shift 2 ;;
         --docbase-backend-port) SERVER_PORT="$2"; shift 2 ;;
         --docbase-frontend-port) FRONTEND_PORT="$2"; shift 2 ;;
         --auth-backend-url) AUTH_SERVICE_URL="$2"; shift 2 ;;
@@ -246,14 +260,25 @@ EOF
     print_success "Generated backend/.env"
 }
 
+resolve_urls() {
+    if [[ -z "$DOCBASE_BACKEND_URL" ]]; then
+        DOCBASE_BACKEND_URL="http://localhost:${SERVER_PORT}"
+    fi
+    if [[ -z "$DOCBASE_FRONTEND_URL" ]]; then
+        DOCBASE_FRONTEND_URL="http://localhost:${FRONTEND_PORT}"
+    fi
+}
+
 to_docker_url() {
     echo "${1//localhost/host.docker.internal}"
 }
 
 export_docker_vars() {
+    resolve_urls
     export DB_HOST DB_PORT DB_USER DB_PASSWORD DB_NAME DB_SSL_MODE DB_PORT_EXTERNAL
     export SERVER_PORT SERVER_HOST
     export FRONTEND_PORT
+    export DOCBASE_BACKEND_URL DOCBASE_FRONTEND_URL
     export CLIENT_ID CLIENT_SECRET
     export MAX_UPLOAD_SIZE
     export AUTH_SERVICE_URL
@@ -352,9 +377,10 @@ do_start() {
 
     dc up -d --build
 
+    resolve_urls
     print_success "Services started"
-    print_info "DocBase Backend:   http://localhost:${SERVER_PORT}"
-    print_info "DocBase Frontend:  http://localhost:${FRONTEND_PORT}"
+    print_info "DocBase Backend:   ${DOCBASE_BACKEND_URL}"
+    print_info "DocBase Frontend:  ${DOCBASE_FRONTEND_URL}"
     print_info "Auth Backend:      ${AUTH_SERVICE_URL}"
     print_info "Auth Frontend:     ${AUTH_SERVICE_FRONTEND_URL}"
     echo ""
@@ -386,16 +412,17 @@ do_status() {
     dc ps 2>/dev/null || true
     echo ""
 
-    if curl -sf "http://localhost:${SERVER_PORT}/health" > /dev/null 2>&1; then
-        print_success "DocBase Backend is running at http://localhost:${SERVER_PORT}"
+    resolve_urls
+    if curl -sf "${DOCBASE_BACKEND_URL}/health" > /dev/null 2>&1; then
+        print_success "DocBase Backend is running at ${DOCBASE_BACKEND_URL}"
     else
-        print_warning "DocBase Backend is not responding at http://localhost:${SERVER_PORT}"
+        print_warning "DocBase Backend is not responding at ${DOCBASE_BACKEND_URL}"
     fi
 
-    if curl -sf "http://localhost:${FRONTEND_PORT}" > /dev/null 2>&1; then
-        print_success "DocBase Frontend is running at http://localhost:${FRONTEND_PORT}"
+    if curl -sf "${DOCBASE_FRONTEND_URL}" > /dev/null 2>&1; then
+        print_success "DocBase Frontend is running at ${DOCBASE_FRONTEND_URL}"
     else
-        print_warning "DocBase Frontend is not responding at http://localhost:${FRONTEND_PORT}"
+        print_warning "DocBase Frontend is not responding at ${DOCBASE_FRONTEND_URL}"
     fi
 
     if curl -sf "${AUTH_SERVICE_URL}/health" > /dev/null 2>&1; then
