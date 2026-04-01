@@ -68,7 +68,7 @@ Document management system with SSO integration for the Seasia enterprise ecosys
 ./setup.sh --init-db                    # Initialize external database
 ```
 
-### Port Configuration
+### Port & URL Configuration
 
 ```bash
 # DocBase ports
@@ -79,9 +79,13 @@ Document management system with SSO integration for the Seasia enterprise ecosys
            --docbase-frontend-port 3005 \
            --docker-db-port 5435 --start                # All custom ports
 
-# Auth service on non-default ports
-./setup.sh --auth-backend-url http://localhost:9090 \
-           --auth-frontend-url http://localhost:3005 --start
+# DocBase on a different IP / hostname
+./setup.sh --docbase-backend-url http://192.168.1.50:8082 \
+           --docbase-frontend-url http://192.168.1.50:3001 --start
+
+# Auth service on non-default IP
+./setup.sh --auth-backend-url http://192.168.1.10:8080 \
+           --auth-frontend-url http://192.168.1.10:3000 --start
 
 # External database with custom port
 ./setup.sh --use-external-db --db-port 5433 --start
